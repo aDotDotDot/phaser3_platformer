@@ -154,13 +154,13 @@ class Preload extends Phaser.Scene{
 
         this.load.audio('theme', [
             //'assets/forest.ogg',
-            'assets/jurassic_park_theme_res.ogg'
+            'assets/jurassic_park_theme.ogg'
         ]);
         this.load.audio('ice_theme', [
-            'assets/do_you_wanna_build_a_snowman_res.ogg'
+            'assets/do_you_wanna_build_a_snowman.ogg'
         ]);
         this.load.audio('zombie_theme', [
-            'assets/thriller_res.ogg'
+            'assets/thriller.ogg'
         ]);
         this.load.audio('jump', [
             'assets/jump.ogg',
