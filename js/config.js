@@ -8,6 +8,9 @@ let canJump = true;
 let lastDownJump = 0;
 let lives = 3;
 let score = 0;
+let hiScore = 0;
+if(localStorage.getItem('plit_hi_score'))
+    hiScore = localStorage.getItem('plit_hi_score');
 let scoreText;
 let mainCamera;
 let restartScene = 'Welcome_screen';

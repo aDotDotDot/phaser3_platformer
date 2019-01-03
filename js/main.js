@@ -47,7 +47,7 @@ class Spinner extends Phaser.Scene{
     update(time, delta){
     }
 }*/
-let cheatGo = 'Town_3';
+let cheatGo = 'Game_over';
 
 class Preload extends Phaser.Scene{
     constructor(){
@@ -68,14 +68,60 @@ class Preload extends Phaser.Scene{
         const progressBox = this.add.graphics();
         progressBox.fillStyle(0x222222, 0.8);
         progressBox.fillRect(240, 270, 320, 50);
+        const loadingText = this.make.text({
+            x: 400,
+            y: 250,
+            text: 'Loading...',
+            style: {
+                font: '20px monospace',
+                fill: '#4C986D'
+            }
+        });
+        loadingText.setOrigin(0.5, 0.5);
+        const percentText = this.make.text({
+            x: 400,
+            y: 295,
+            text: '0%',
+            style: {
+                font: '18px monospace',
+                fill: '#4C986D'
+            }
+        });
+        percentText.setOrigin(0.5, 0.5);
+        
+        const funMessageText = this.make.text({
+            x: 400,
+            y: 350,
+            text: '',
+            style: {
+                font: '18px monospace',
+                fill: '#4C986D'
+            }
+        });
+        let funMessages = ['Generating Bitcoins... Please Wait',
+        'Recording new theme songs',
+        'Generating helpful messages',
+        'Upgrading Windows, your PC will restart several times.',
+        'Scanning your computer for viruses',
+        'Ordering 0s and 1s... Oh looks like one more 0 behind the screen !',
+        'Throwing pixels at the screen',
+        '//TODO : faster loading screen',
+        'Dressing bugs to look like features',
+        'This game is running on a potato, it explains the loading time'];
+        funMessageText.setOrigin(0.5, 0.5);
+        let lastVal = 0;
         this.load.on('progress', function (value) {
+            percentText.setText(parseInt(value * 100) + '%');
             progressBar.clear();
-            progressBar.fillStyle(0xffffff, 1);
+            progressBar.fillStyle(0x4C986D, 1);
             progressBar.fillRect(250, 280, 300 * value, 30);
+            if(lastVal<(value-0.2)){
+                funMessageText.setText(funMessages[Math.floor(Math.random()*funMessages.length)]);
+                lastVal=value;
+            }
         });
                     
         this.load.on('fileprogress', function (file) {
-            //console.log(file.src);
         });
          
         this.load.on('complete', function () {
@@ -91,6 +137,9 @@ class Preload extends Phaser.Scene{
         this.load.image('egg', 'assets/egg_28.png');
         this.load.image('gift', 'assets/gift_box.png');
         this.load.image('snowball', 'assets/snowball.png');
+        this.load.image('falling_tile', 'assets/falling_tile.png');
+
+        this.load.spritesheet('sparks', 'assets/sparks_sprites.png', { frameWidth: 128, frameHeight: 128 });
         this.load.spritesheet('snake', 'assets/snake.png', { frameWidth: 24, frameHeight: 24 });
         this.load.spritesheet('snake_die', 'assets/dying_snake_sprites_576x24.png', { frameWidth: 48, frameHeight: 24 });
         this.load.spritesheet('hero', 'assets/full_platypus_sheet.png', { frameWidth: 50, frameHeight: 50 });
@@ -105,13 +154,13 @@ class Preload extends Phaser.Scene{
 
         this.load.audio('theme', [
             //'assets/forest.ogg',
-            'assets/jurassic_park_theme.ogg'
+            'assets/jurassic_park_theme_res.ogg'
         ]);
         this.load.audio('ice_theme', [
-            'assets/do_you_wanna_build_a_snowman.ogg'
+            'assets/do_you_wanna_build_a_snowman_res.ogg'
         ]);
         this.load.audio('zombie_theme', [
-            'assets/thriller.ogg'
+            'assets/thriller_res.ogg'
         ]);
         this.load.audio('jump', [
             'assets/jump.ogg',
@@ -273,6 +322,12 @@ class Preload extends Phaser.Scene{
             repeat: 0,
             onRepeat: (sprite,anim)=>{console.log(sprite);sprite.destroy();}
         });
+        this.anims.create({
+            key: 'normal_loading',
+            frames: this.anims.generateFrameNumbers('loading_pl', { start: 0, end: 31 }),
+            frameRate: 24,
+            repeat: -1
+        });
         //this.music = this.sound.add('theme');
         jump = this.sound.add('jump', {volume: 0.3});
         hit = this.sound.add('hit', {volume: 0.4});
@@ -317,7 +372,11 @@ class Welcome_screen extends Phaser.Scene{
         // Parameters: layer name (or index) from Tiled, tileset, x, y
         worldLayer = map.createDynamicLayer('tiles', tileset_base, 0, 0);
         worldLayer.setCollisionByProperty({collides: true});
-        const spawnPoint = map.findObject('objects', obj => obj.name === 'spawn');
+        hero = this.physics.add.sprite(400,300, 'loading_pl');
+        hero.body.setAllowGravity(false);
+        hero.setFrame(2);
+        hero.anims.play('normal_loading', true);
+        /*const spawnPoint = map.findObject('objects', obj => obj.name === 'spawn');
         hero = this.physics.add.sprite(spawnPoint.x, spawnPoint.y, 'hero');
         hero.setBounce(0);
         hero.setCollideWorldBounds(true);
@@ -325,7 +384,7 @@ class Welcome_screen extends Phaser.Scene{
 
 
         this.physics.add.collider(worldLayer, hero);
-        hero.anims.play('turn_right', true);
+        hero.anims.play('turn_right', true);*/
         this.cameras.main.startFollow(hero, true, 0.08, 0.08);
         this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
         this.cameras.main.setBackgroundColor('#ccccff'); 
@@ -333,7 +392,23 @@ class Welcome_screen extends Phaser.Scene{
         this.physics.world.bounds.height = worldLayer.height;
         this.keyGo = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
         this.keyV = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.V);
+
         //console.log(this);
+
+        this.nameMessage = this.add.text(400, 120, `No Name Bros.`,    { fontFamily: "Arial Black", fontSize: 96, fill: '#4C986D', align: 'center' });
+        this.nameMessage.setOrigin(0.5);
+        this.nameMessage.setStroke('#003D1B', 6);
+        this.nameMessage.setShadow(2, 2, "#003D1A", 2, true, true);
+        if(hiScore>0){
+            this.hiScoreMessage = this.add.text(630, 490, `High score : ${hiScore}`,    { font: '72px Arial', fill: '#4C986D', align: 'center' });
+            this.hiScoreMessage.setOrigin(0.5);
+            this.hiScoreMessage.setStroke('#003D1B', 6);
+            this.hiScoreMessage.setShadow(2, 2, "#003D1A", 2, true, true);
+        }
+        this.startMessage = this.add.text(210, 490, `Press 'S' to quick start`,  { font: '72px Arial', fill: '#4C986D', align: 'center' });
+        this.startMessage.setOrigin(0.5);
+        this.startMessage.setStroke('#003D1B', 6);
+        this.startMessage.setShadow(2, 2, "#003D1A", 2, true, true);
     }
 
     update(time, delta){
@@ -366,8 +441,25 @@ class Game_over extends Phaser.Scene{
         // Parameters: layer name (or index) from Tiled, tileset, x, y
         worldLayer = map.createDynamicLayer('tiles', tileset_base, 0, 0);
         worldLayer.setCollisionByProperty({collides: true});
+        /*let iii = 1;
+        setInterval(() => {
+            worldLayer.replaceByIndex(iii, iii+1);
+            iii++;
+        }, 1000);
+        let fallingTiles = worldLayer.filterTiles(obj=> obj.index==1);
+        fallingTiles.map(f=>{
+            //f.enableBody=true;
+            this.physics.add.existing(f);
+            f.body.setEnable(true);
+            f.body.setAllowGravity(true);
+            f.body.setGravityY(230);
+            f.body.setVelocityY(124);
+            f.body.setMass(1.8);
+            f.body.setImmovable(false)
+            f.body.setBounce(0.4);
+            console.log(f);
+        })*/
         cursors = this.input.keyboard.createCursorKeys();
-
         
         const spawnPoint = map.findObject('objects', obj => obj.name === 'spawn');
         hero = this.physics.add.sprite(spawnPoint.x, spawnPoint.y, 'hero');
@@ -386,6 +478,101 @@ class Game_over extends Phaser.Scene{
         this.keyGo = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
         this.keyContinue = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
 
+
+        if(lives>0){
+            this.congratulationsMessage = this.add.text(400, 120, `Congratulations`,    { fontFamily: "Arial Black", fontSize: 84, fill: '#4C986D', align: 'center' });
+            this.congratulationsMessage.setOrigin(0.5);
+            this.congratulationsMessage.setStroke('#003D1B', 6);
+            this.congratulationsMessage.setShadow(2, 2, "#003D1A", 2, true, true);
+            this.congratulationsMessage.depth=1;
+            this.particles = this.add.particles('sparks');
+
+            this.particlesEmitter = this.particles.createEmitter({
+                x: 200,
+                y: -20,
+                angle: { min: 180, max: 360 },
+                speed: 400,
+                gravityY: 350,
+                lifespan: 4000,
+                quantity: 6,
+                scale: { start: 0.1, end: 1 },
+                frame :  [0,1,2,3,4]
+                //blendMode: 'ADD'
+            });
+            this.particlesEmitter = this.particles.createEmitter({
+                x: 600,
+                y: -20,
+                angle: { min: 180, max: 360 },
+                speed: 400,
+                gravityY: 350,
+                lifespan: 4000,
+                quantity: 6,
+                scale: { start: 0.1, end: 1 },
+                frame :  [0,1,2,3,4]
+                //blendMode: 'ADD'
+            });
+        }
+
+        this.startMessage = this.add.text(400, 200, `Press 'S' to start again`,  { font: '72px Arial', fill: '#4C986D', align: 'center' });
+        this.continueMessage = this.add.text(400, 300, `Press 'C' to continue`,  { font: '72px Arial', fill: '#4C986D', align: 'center' });
+        this.nothingMessage = this.add.text(400, 400, `Press 'N' do nothing`,    { font: '72px Arial', fill: '#4C986D', align: 'center' });
+        this.startMessage.setOrigin(0.5);
+        this.continueMessage.setOrigin(0.5);
+        this.nothingMessage.setOrigin(0.5);
+        this.startMessage.setStroke('#003D1B', 6);
+        this.startMessage.setShadow(2, 2, "#003D1A", 2, true, true);
+        this.continueMessage.setStroke('#003D1B', 6);
+        this.continueMessage.setShadow(2, 2, "#003D1A", 2, true, true);
+        this.nothingMessage.setStroke('#003D1B', 6);
+        this.nothingMessage.setShadow(2, 2, "#003D1A", 2, true, true);
+        if(score > hiScore){
+            hiScore = score;
+            localStorage.setItem('plit_hi_score', score);
+        }
+        this.scoreMessage = this.add.text(175, 490, `Score : ${score}`,    { font: '72px Arial', fill: '#4C986D', align: 'center' });
+        this.hiScoreMessage = this.add.text(630, 490, `Best : ${hiScore}`,    { font: '72px Arial', fill: '#4C986D', align: 'center' });
+        this.scoreMessage.setOrigin(0.5);
+        this.hiScoreMessage.setOrigin(0.5);
+        this.scoreMessage.setStroke('#003D1B', 6);
+        this.scoreMessage.setShadow(2, 2, "#003D1A", 2, true, true);
+        this.hiScoreMessage.setStroke('#003D1B', 6);
+        this.hiScoreMessage.setShadow(2, 2, "#003D1A", 2, true, true);
+
+        this.startMessage.depth=1;
+        this.continueMessage.depth=1;
+        this.nothingMessage.depth=1;
+
+
+        this.fallingTiles = this.physics.add.group({
+            allowGravity: false
+        });
+        const fallingTilesCoords = [//game
+            {x: 70,y: 105},{x: 105,y: 105},{x: 140,y: 105},{x: 175,y: 105},{x: 245,y: 105},{x: 280,y: 105},{x: 315,y: 105},{x: 350,y: 105},{x: 420,y: 105},{x: 455,y: 105},{x: 525,y: 105},{x: 560,y: 105},{x: 630,y: 105},{x: 665,y: 105},{x: 700,y: 105},
+            {x: 70,y: 140},{x: 245,y: 140},{x: 350,y: 140},{x: 420,y: 140},{x: 490,y: 140},{x: 560,y: 140},{x: 630,y: 140},
+            {x: 70,y: 175},{x: 140,y: 175},{x: 175,y: 175},{x: 245,y: 175},{x: 280,y: 175},{x: 315,y: 175},{x: 350,y: 175},{x: 420,y: 175},{x: 560,y: 175},{x: 630,y: 175},{x: 665,y: 175},
+            {x: 70,y: 210},{x: 175,y: 210},{x: 245,y: 210},{x: 350,y: 210},{x: 420,y: 210},{x: 560,y: 210},{x: 630,y: 210},
+            {x: 70,y: 245},{x: 105,y: 245},{x: 140,y: 245},{x: 175,y: 245},{x: 245,y: 245},{x: 350,y: 245},{x: 420,y: 245},{x: 560,y: 245},{x: 630,y: 245},{x: 665,y: 245},{x: 700,y: 245},
+            //over
+            {x: 70,y: 315},{x: 105,y: 315},{x: 140,y: 315},{x: 175,y: 315},{x: 245,y: 315},{x: 385,y: 315},{x: 455,y: 315},{x: 490,y: 315},{x: 525,y: 315},{x: 595,y: 315},{x: 630,y: 315},{x: 665,y: 315},{x: 700,y: 315},
+            {x: 70,y: 350},{x: 175,y: 350},{x: 245,y: 350},{x: 385,y: 350},{x: 455,y: 350},{x: 595,y: 350},{x: 700,y: 350},
+            {x: 70,y: 385},{x: 175,y: 385},{x: 280,y: 385},{x: 350,y: 385},{x: 455,y: 385},{x: 490,y: 385},{x: 595,y: 385},{x: 630,y: 385},{x: 665,y: 385},{x: 700,y: 385},
+            {x: 70,y: 420},{x: 175,y: 420},{x: 280,y: 420},{x: 350,y: 420},{x: 455,y: 420},{x: 595,y: 420},{x: 665,y: 420},
+            {x: 70,y: 455},{x: 105,y: 455},{x: 140,y: 455},{x: 175,y: 455},{x: 315,y: 455},{x: 455,y: 455},{x: 490,y: 455},{x: 525,y: 455},{x: 595,y: 455},{x: 700,y: 455},
+        ];
+        fallingTilesCoords.map(ff=>{
+            let ftile = this.fallingTiles.create(ff.x, ff.y, 'falling_tile').setOrigin(0,1).setBounce(0.4);
+            ftile.depth=0;
+        });
+        this.physics.add.collider(this.fallingTiles, worldLayer);
+
+        setTimeout((()=>{
+            //this.fallingTiles.setVelocityY(200);
+            this.fallingTiles.children.each(e=>{
+                e.body.setAllowGravity(true);
+                e.body.setVelocityY(-200)
+                this.physics.accelerateToObject(e,hero,130);
+            })
+        }).bind(this), 2000);
         //console.log(this);
     }
 
@@ -483,6 +670,17 @@ class Tutorial_1 extends Phaser.Scene{
         //music, theme & all
         if(!soundBox.get('theme').isPlaying)
             soundBox.get('theme').play();
+        
+        this.keyTuto = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+        this.tutoMessages =[{xstart: 184, xend: 694,   y: 300, acknowledged: false, message:'Welcome to the tutorial!\nThe controls are easy : \n- move by using the left and right arrows\n- jump by using either the space key or the up arrow'},
+                            {xstart: 695, xend: 1100,  y: 250, acknowledged: false, message:'You wont take fall damages\nbut you can jump to close the gaps faster'},
+                            {xstart: 1243, xend: 1678, y: 250, acknowledged: false, message:'Beware of the fall\nthere is nothing but death underneath !'},
+                            {xstart: 2181, xend: 2710, y: 380, acknowledged: false, message:'This gap is too wide for a single jump\ngood thing you can double jump by\npressing the jump key while already in the air'},
+                            {xstart: 2720, xend: 3100, y: 430, acknowledged: false, message:'You can double jump again\nwhenever you touch the ground\n(or certain enemies)'},
+                            {xstart: 3178, xend: 3500, y: 430, acknowledged: false, message:'Now, just reach the door at the end\nto finish the level'}]
+        this.currentTutoMessage = this.add.text(20, 20, ``,  { font: '12px Arial', fill: '#4C986D', align: 'center' });
+        this.currentTutoMessage.setStroke('#003D1B', 6);
+        this.currentTutoMessage.setShadow(2, 2, "#003D1A", 2, true, true);
     }
 
     collectEgg(player, egg)
@@ -493,6 +691,22 @@ class Tutorial_1 extends Phaser.Scene{
         emitter.emit('HUD_update', score, lives);
     }
     update(time, delta){
+        this.tutoMessages.map(e=>{//check if we need to display a message
+            if(hero.body.y < 700){
+                if(hero.body.x > e.xend && !e.acknowledged){
+                    this.currentTutoMessage.setText('');
+                    e.acknowledged = true;
+                }
+                if((hero.body.x >= e.xstart - 100) && hero.body.x < e.xend && !e.acknowledged){
+                    this.currentTutoMessage.x = e.xstart - 50;
+                    this.currentTutoMessage.y = e.y;
+                    this.currentTutoMessage.setText(e.message);
+                }
+            }else{
+                this.currentTutoMessage.setText('I said there was\nonly death here, dumbass !');
+                this.currentTutoMessage.y = 750;
+            }
+        });
         if(Phaser.Math.Distance.Between(hero.body.x,hero.body.y,this.endPoint.x,this.endPoint.y) <= 50){
             level.play();
             if(levelOrder.has(this.scene.key)){
@@ -610,13 +824,37 @@ class Tutorial_2 extends Phaser.Scene{
         const enemies = this.physics.add.group({
             allowGravity: true
         });
+        this.snowballs = this.physics.add.group({
+            allowGravity: true
+        });
+        this.timerByEnemy = new Map();
+        let id = 0;
         enemies_map.map(e=>{
-            let en = enemies.create(e.x, e.y, 'snake').setVelocity(Phaser.Math.FloatBetween(-95, -75), 0).setCollideWorldBounds(true).setImmovable(true);
-            en.anims.play('left_snake', true);
-            en.setData({isHero:false,isEnemy:true,type:'snake'});
+            let en = enemies.create(e.x, e.y, e.name).setCollideWorldBounds(true).setImmovable(true);
+            en.anims.play('left_'+e.name+(e.name=='zombie'?'_walk':''), true);
+            en.body.setAllowGravity(true);
+            if(e.name=='snowman'){
+                const timedEvent = this.time.addEvent({ startAt: 100, delay: Phaser.Math.FloatBetween(1800, 2400), callback: ()=>{
+                    let en = this.snowballs.create(e.x, e.y, 'snowball').setCircle(3).setCollideWorldBounds(false).setImmovable(true);
+                    if(hero.body.x < e.x){
+                        en.setVelocityX(Phaser.Math.FloatBetween(-550, -350));
+                        en.setVelocityY(Phaser.Math.FloatBetween(-140, -10));
+                    }else{
+                        en.setVelocityX(Phaser.Math.FloatBetween(350, 550));
+                        en.setVelocityY(Phaser.Math.FloatBetween(-140, -10));
+                    }
+                    en.setData({isHero:false,isEnemy:true,type:'snowball'});
+                }, callbackScope: this, loop: true });
+                this.timerByEnemy.set(id,timedEvent);
+                en.setData({isHero:false,isEnemy:true,type:'snowman',timer:id});
+                id++;
+            }else{
+                en.setData({isHero:false,isEnemy:true,type:e.name});
+            }
         });
         this.physics.add.collider(enemies, worldLayer);
         this.physics.add.collider(enemies, hero, this.enemyHit.bind(this));
+        this.physics.add.collider(this.snowballs, worldLayer, (e)=>{e.destroy()});
         this.enemies = enemies;
         emitter.emit('HUD_update', score, lives);
         this.endPoint = map.findObject('objects', obj => obj.name === 'level_end');
@@ -624,27 +862,53 @@ class Tutorial_2 extends Phaser.Scene{
         //music, theme & all
         if(!soundBox.get('theme').isPlaying)
             soundBox.get('theme').play();
+
+        this.tutoMessages =[{xstart: 210, xend: 735,  level: 0,y: 70, acknowledged: false, message:'You will have to battle enemies, mostly by jumping on them'},
+                            {xstart: 740, xend: 1155, level: 0,y: 70, acknowledged: false, message:'When you are too far away, the enemy will stop chasing you'},
+                            {xstart: 210, xend: 735,  level: 1,y: 280, acknowledged: false, message:'Some enemies will use projectiles, avoid them !\nYou can kill those enemies by running into them'},
+                            {xstart: 210, xend: 735,  level: 2,y: 510, acknowledged: false, message:'Some enemies let you jump again when you kill them, use it wisely'},
+                            {xstart: 740, xend: 1225, level: 2,y: 510, acknowledged: false, message:'Now, just reach the door at the end\nto finish the level'}]
+        this.currentTutoMessage = this.add.text(20, 20, ``,  { font: '12px Arial', fill: '#4C986D', align: 'center' });
+        this.currentTutoMessage.setStroke('#003D1B', 6);
+        this.currentTutoMessage.setShadow(2, 2, "#003D1A", 2, true, true);
     }
     enemyHit(theHero,theEnemy){
-        if(theEnemy.body.touching.up){
+        if(theEnemy.getData('type')!='snowman'){
+            if(theEnemy.body.touching.up){
+                hit.play();
+                if(theEnemy.getData('type')=='zombie')
+                    canDoubleJump=true;
+                //theEnemy.destroy();
+                theEnemy.disableBody();
+                if(hero.body.x < theEnemy.body.x)
+                    theEnemy.anims.play('left_'+theEnemy.getData('type')+'_die');
+                else
+                    theEnemy.anims.play('right_'+theEnemy.getData('type')+'_die');
+                theEnemy.setData('isDead', true);
+                score+=50;
+            }else{
+                enemy_hit.play();
+                lives--;
+                if(lives>0)
+                    this.scene.restart();
+                else{
+                    restartScene = this.scene.key;
+                    this.scene.start('Game_over');
+                }
+            }
+        }else{
             hit.play();
+            let t = theEnemy.getData('timer');
+            score+=150;
+            let tm = this.timerByEnemy.get(t);
+            tm.destroy();
             //theEnemy.destroy();
             theEnemy.disableBody();
-            if(hero.body.x < theEnemy.body.x)
-                theEnemy.anims.play('left_snake_die');
+            if(hero.body.x > theEnemy.body.x + 10)
+                theEnemy.anims.play('right_snowman_die');
             else
-                theEnemy.anims.play('right_snake_die');
+                theEnemy.anims.play('left_snowman_die');
             theEnemy.setData('isDead', true);
-            score+=50;
-        }else{
-            enemy_hit.play();
-            lives--;
-            if(lives>0)
-                this.scene.restart();
-            else{
-                restartScene = this.scene.key;
-                this.scene.start('Game_over');
-            }
         }
         emitter.emit('HUD_update', score, lives);
     }
@@ -656,6 +920,22 @@ class Tutorial_2 extends Phaser.Scene{
         emitter.emit('HUD_update', score, lives);
     }
     update(time, delta){
+        this.tutoMessages.map(e=>{//check if we need to display a message
+            let level = 0;
+            if(hero.body.y>=190)
+                level = 1;
+            if(hero.body.y>=455)
+                level = 2;
+            if(hero.body.x > e.xend && !e.acknowledged && level==e.level){
+                this.currentTutoMessage.setText('');
+                e.acknowledged = true;
+            }
+            if((hero.body.x >= e.xstart - 100) && hero.body.x < e.xend && level == e.level){
+                this.currentTutoMessage.x = e.xstart - 50;
+                this.currentTutoMessage.y = e.y;
+                this.currentTutoMessage.setText(e.message);
+            }
+        });
         if(Phaser.Math.Distance.Between(hero.body.x,hero.body.y,this.endPoint.x,this.endPoint.y) <= 50){
             level.play();
             if(levelOrder.has(this.scene.key)){
@@ -704,18 +984,22 @@ class Tutorial_2 extends Phaser.Scene{
         }
         this.enemies.children.each( e => {
             if(!e.getData('isDead')){
-                if(Phaser.Math.Distance.Between(hero.body.x,hero.body.y,e.body.x,e.body.y) <= 150){
-                    if(hero.body.x < e.body.x)
-                        e.setVelocityX(Phaser.Math.FloatBetween(-95, -75))
-                    else
-                        e.setVelocityX(Phaser.Math.FloatBetween(75, 95))
-                }else{
-                    e.setVelocityX(0);
+                let ttype = e.getData('type');
+                if(ttype!='snowman'){
+                    if(Phaser.Math.Distance.Between(hero.body.x,hero.body.y,e.body.x,e.body.y) <= 150){
+                        if(hero.body.x < e.body.x)
+                            e.setVelocityX(Phaser.Math.FloatBetween(-95, -75))
+                        else
+                            e.setVelocityX(Phaser.Math.FloatBetween(75, 95))
+                    }else{
+                        e.setVelocityX(0);
+                    }
                 }
-                if(hero.body.x < e.body.x && e.anims.currentAnim.key != 'left_snake')
-                    e.anims.play('left_snake');
-                if(hero.body.x > e.body.x && e.anims.currentAnim.key != 'right_snake')
-                    e.anims.play('right_snake');
+                let endName = e.getData('type')+(e.getData('type')=='zombie'?'_walk':'');
+                if(hero.body.x < e.body.x && e.anims.currentAnim.key != 'left_'+endName)
+                    e.anims.play('left_'+endName);
+                if(hero.body.x > e.body.x && e.anims.currentAnim.key != 'right_'+endName)
+                    e.anims.play('right_'+endName);
             }
         })
         /*this.enemies.map(e=>{
@@ -793,7 +1077,15 @@ class Tower extends Phaser.Scene{
 
         //music, theme & all
         if(!soundBox.get('theme').isPlaying)
-        soundBox.get('theme').play();
+            soundBox.get('theme').play();
+
+        this.tutoMessages =[{ystart: 1610, yend: 1400,x: 140, message:'Let\'s train you\nto double jump'},
+                            {ystart: 1295, yend: 1015,x: 140, message:'You can catch bonuses\nto earn more points'},
+                            {ystart: 945, yend: 710,  x: 140, message:'You\'re almost there'},
+                            {ystart: 700, yend: 485,  x: 140, message:'Now, just reach the door at the end\nto finish the level'}]
+        this.currentTutoMessage = this.add.text(20, 20, ``,  { font: '12px Arial', fill: '#4C986D', align: 'center' });
+        this.currentTutoMessage.setStroke('#003D1B', 6);
+        this.currentTutoMessage.setShadow(2, 2, "#003D1A", 2, true, true);
     }
 
     collectEgg(player, egg)
@@ -804,6 +1096,20 @@ class Tower extends Phaser.Scene{
         emitter.emit('HUD_update', score, lives);
     }
     update(time, delta){
+        this.tutoMessages.map(e=>{//check if we need to display a message
+            if(hero.body.y < e.yend){
+                this.currentTutoMessage.setText('');
+                e.acknowledged = true;
+            }
+            if((hero.body.y <= e.ystart - 35) && hero.body.y > e.yend){
+                if(hero.body.x <= 400)
+                    this.currentTutoMessage.x = e.x;
+                else
+                    this.currentTutoMessage.x = 700-e.x;
+                this.currentTutoMessage.y = e.yend + 35;
+                this.currentTutoMessage.setText(e.message);
+            }
+        });
         if(Phaser.Math.Distance.Between(hero.body.x,hero.body.y,this.endPoint.x,this.endPoint.y) <= 50){
             level.play();
             hasBeenThroughTutorial=true;
@@ -2558,8 +2864,7 @@ class Town_3 extends Phaser.Scene{
             en.body.setSize(45, 70, true);
             en.setData({isHero:false,isEnemy:true,type:'zombie'});
         });
-        this.maxNumberOfEnemies = groundEnemiesLayer.length;
-        this.remainingEnemies = groundEnemiesLayer.length;
+        //console.log("Nombre de zombies : "+groundEnemiesLayer.length);
         this.physics.add.collider(this.enemies, worldLayer);
         this.physics.add.collider(this.enemies, hero, this.enemyHit.bind(this));
         //update the HUD and force it on top
@@ -2571,8 +2876,6 @@ class Town_3 extends Phaser.Scene{
         if(!soundBox.get('zombie_theme').isPlaying)
             soundBox.get('zombie_theme').play();
 
-
-        this.notEnoughText = this.add.text(3371,1061, `Kill more enemies !!`,  { font: '15px Arial', fill: '#123456' });
 
     }
     enemyHit(theHero,theEnemy){
@@ -2608,20 +2911,13 @@ class Town_3 extends Phaser.Scene{
     }
     update(time, delta){
         // Runs once per frame for the duration of the scene
-        if(Phaser.Math.Distance.Between(hero.body.x,hero.body.y,this.endPoint.x,this.endPoint.y) <= 50
-            && this.remainingEnemies<=Math.floor(0.1*this.maxNumberOfEnemies)){
+        if(Phaser.Math.Distance.Between(hero.body.x,hero.body.y,this.endPoint.x,this.endPoint.y) <= 50){
             level.play();
             if(levelOrder.has(this.scene.key)){
                 this.scene.start(levelOrder.get(this.scene.key));
             }else{
                 restartScene = this.scene.key;
                 this.scene.start('Game_over');
-            }
-        }else{
-            if(this.remainingEnemies>Math.floor(0.1*this.maxNumberOfEnemies)){
-                this.notEnoughText.setText('Kill more enemies !');
-            }else{
-                this.notEnoughText.setText('');
             }
         }
         if ((cursors.space.isDown || cursors.up.isDown))
@@ -2710,7 +3006,7 @@ class HUD extends Phaser.Scene {
     }
     HUD_display(current_score, current_lives){
         this.scene.bringToTop();
-        this.scoreText.setText(`${current_score}        ❤️${current_lives}`);
+        this.scoreText.setText(`${current_score}        ❤️${((current_lives<0)?'0':current_lives)}`);
         //this.scoreText.x = mainCamera.worldView.centerX;
         //this.scoreText.y = mainCamera.worldView.top - 50;
         //this.livesText.setText(`Lives: ${current_lives}`);
